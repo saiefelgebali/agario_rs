@@ -2,9 +2,8 @@
 #import bevy_render::view::View
 #import bevy_sprite::mesh2d_vertex_output::VertexOutput
 
-// @group(0) @binding(0) var<uniform> view: View;
-@group(2) @binding(0) var<uniform> normalized_cell_overflow_radius: f32;
 @group(2) @binding(1) var<uniform> base_color: vec4<f32>;
+@group(2) @binding(2) var<storage> colliders: array<vec4<f32>>;
 
 const SPEED:f32 = 1.0;
 const PI: f32 = 3.1415;
@@ -17,28 +16,97 @@ fn nsin(in: f32) -> f32 {
     return (sin(in) + 1.0) / 2.0;
 }
 
+fn smooth_union(distance_a: f32, distance_b: f32, k: f32) -> f32 {
+    let h = clamp(0.5 - 0.5 * (distance_b - distance_a) / k, 0., 1.);
+    return mix(distance_b, distance_a, h) - k * h * (1. - h);
+}
+
+fn sd_circle(uv: vec2<f32>, center: vec2<f32>, radius: f32) -> f32 {
+    return 1.0 - sign(distance(uv, center) - radius);
+}
+
+fn circle(position: vec2<f32>, radius: f32) -> f32 {
+    return length(position) - radius;
+}
+
+fn intersect(shape1: f32, shape2: f32) -> f32 {
+    return max(shape1, shape2);
+}
+
+fn round_intersect(shape_a: f32, shape_b: f32, radius: f32) -> f32 {
+    let intersection_space = vec2(max(shape_a + radius, 0.0), max(shape_b + radius, 0.0));
+    let outside_distance = length(intersection_space);
+    let simple_intersection = intersect(shape_a, shape_b);
+    let inside_distance = min(simple_intersection, -radius);
+    return outside_distance + inside_distance;
+}
+
+fn subtract(base: f32, subtraction: f32) -> f32 {
+    return intersect(base, -subtraction);
+}
+
+fn round_subtract(base: f32, subtraction: f32, radius: f32) -> f32 {
+    return round_intersect(base, -subtraction, radius);
+}
+
+fn translate(sample_position: vec2<f32>, offset: vec2<f32>) -> vec2<f32> {
+    return sample_position - offset;
+}
+
+
+fn merge(shape_a: f32, shape_b: f32) -> f32 {
+    return min(shape_a, shape_b);
+}
+
+fn sum_of_sines(normalized_angle: f32, time: f32, magnitude: f32) -> f32 {
+    var sin_extra = nsin(normalized_angle * 20.0 * PI + time);
+    sin_extra += nsin(normalized_angle * 2.0 * PI + time);
+    sin_extra /= 2.0;
+    sin_extra *= magnitude;
+    return sin_extra;
+}
+
+fn scene(sample_position: vec2<f32>, time: f32) -> f32 {
+    let circle_position_a = translate(sample_position, vec2(0.0, 0.0));
+    let angle_a = atan2(circle_position_a.x, circle_position_a.y);
+    let normalized_angle_a = (angle_a + PI) / (2.0 * PI);
+    let sin_extra_a = sum_of_sines(normalized_angle_a, time, 0.01);
+    let circle_a = circle(circle_position_a, 0.99 + sin_extra_a);
+    var scene_distance = -1.0;
+
+    for (var i = 0; i < 2; i++) {
+        let current_collider = colliders[i];
+        let circle_position_b = translate(sample_position, current_collider.xy);
+        let angle_b = atan2(circle_position_b.x, circle_position_b.y);
+        let normalized_angle_b = (angle_b + PI) / (2.0 * PI);
+        let sin_extra_b = sum_of_sines(normalized_angle_b, time, 0.1);
+        let circle_b = circle(circle_position_b, current_collider.z + 0.2 + sin_extra_b);
+        scene_distance = max(scene_distance, round_subtract(circle_a, circle_b, 0.05));
+    }
+
+    return scene_distance;
+}
+
 @fragment
 fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
+    let inside_color = base_color;
+    let outside_color = vec4(0.0, 0.5, 0.0, 0.0);
+    let line_distance = 0.05;
+    let line_thickness = 0.05;
+
+    var uv = (mesh.uv.xy * 2.0) - 1.0;
     let t = globals.time * SPEED;
 
-    // Put (0,0) at the centre of the screen
-    var uv = (mesh.uv.xy * 2.0) - 1.0;
+    let scene_distance = scene(uv, t);
+    var color = mix(inside_color, outside_color, step(0.0, scene_distance));
 
-    // Pulsing color
-    let color_transform = 1.0 - (0.25 * nsin(t));
-    let color = base_color.rgb * color_transform;
+    let scene_distance_change = fwidth(scene_distance) * 0.5;
+    // let major_line_distance = abs(fract(scene_distance / line_distance + 0.5) -0.5) * line_distance;
+    let major_line_distance = abs(fract(scene_distance / line_distance + 0.5) - 0.5);
+    let major_lines = smoothstep(line_thickness - scene_distance_change, line_thickness + scene_distance_change, major_line_distance);
 
-    // Differentiate between "base" radius, and "overflow" radius.
-    // The base radius describes the radius of the inner circle
-    // The overflow radius is a buffer radius for the extra sin waves surrounding the circle
-    let overflow_radius = normalized_cell_overflow_radius;
-    let base_radius = 1.0 - overflow_radius;
+    // color *= major_lines;
 
-    let angle = atan2(uv.x, uv.y);
-    let sin_extra = overflow_radius * ((nsin(angle * 4.0 + t)) * 0.5 + ncos(angle * 12.0 + t) * 0.5);
-    let opacity = 1.0 - sign(distance(uv, vec2(0.)) - (base_radius + sin_extra));
-
-	return vec4f(color, opacity);
-}    
-    
+	return color;
+}
 

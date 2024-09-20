@@ -5,9 +5,7 @@ use crate::{
     WORLD_SIZE,
 };
 use bevy::{
-    math::bounding::{Aabb2d, BoundingVolume, IntersectsVolume},
-    prelude::*,
-    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
+    math::{bounding::{BoundingCircle, BoundingVolume, IntersectsVolume}}, prelude::*, sprite::{MaterialMesh2dBundle, Mesh2dHandle}
 };
 use rand::{thread_rng, Rng};
 
@@ -40,6 +38,7 @@ fn setup_food_system(
                 material: materials.add(CellMaterial {
                     normalized_cell_overflow_radius,
                     color: random_color(),
+                    colliders: Vec::new()
                 }),
                 ..default()
             })
@@ -53,20 +52,32 @@ fn check_food_collision_system(
     player_query: Query<&Transform, With<Player>>,
     food_query: Query<(Entity, &Transform, &Size), With<Food>>,
     mut eat_food_event: EventWriter<EatFoodEvent>,
+    mut materials: ResMut<Assets<CellMaterial>>,
+    handle: Query<&Handle<CellMaterial>, With<Player>>,
 ) {
+    let player_material_handle = handle.single();
+    let player_material = materials.get_mut(player_material_handle).unwrap();
+
+     player_material.colliders = Vec::new();
+
     for player_transform in player_query.iter() {
-        let player_box = Aabb2d::new(
+        let player_box = BoundingCircle::new(
             player_transform.translation.truncate(),
-            player_transform.scale.truncate() / 2.0,
+            player_transform.scale.x / 2.0,
         );
         for (food_entity, food_transform, food_size) in food_query.iter() {
-            let food_box = Aabb2d::new(
+            let food_box = BoundingCircle::new(
                 food_transform.translation.truncate(),
-                food_transform.scale.truncate() / 2.0,
+                food_transform.scale.x / 2.0,
             );
-            if let Some(_) = food_collision(food_box, player_box) {
-                commands.entity(food_entity).despawn();
-                eat_food_event.send(EatFoodEvent::new(**food_size));
+            if let Some(offset) = food_collision(food_box, player_box) {
+                player_material.colliders.push(Vec4::new(offset.x, offset.y, offset.z, 0.0));
+                dbg!(offset);
+
+                if offset.xy().length() < 1.0 {
+                    commands.entity(food_entity).despawn();
+                    eat_food_event.send(EatFoodEvent::new(**food_size));
+                }
             }
         }
     }
@@ -92,32 +103,16 @@ fn random_color() -> LinearRgba {
     return LinearRgba::new(rand_red, rand_green, rand_blue, 1.0);
 }
 
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
-enum Collision {
-    Left,
-    Right,
-    Top,
-    Bottom,
-}
-
-fn food_collision(food_box: Aabb2d, player_box: Aabb2d) -> Option<Collision> {
+fn food_collision(food_box: BoundingCircle, player_box: BoundingCircle) -> Option<Vec3> {
     if !food_box.intersects(&player_box) {
         return None;
     }
 
-    let closest = player_box.closest_point(food_box.center());
-    let offset = food_box.center() - closest;
-    let side = if offset.x.abs() > offset.y.abs() {
-        if offset.x < 0. {
-            Collision::Left
-        } else {
-            Collision::Right
-        }
-    } else if offset.y > 0. {
-        Collision::Top
-    } else {
-        Collision::Bottom
-    };
+    let raw_offset = food_box.center() - player_box.center();
+    let normalized_offset = raw_offset / player_box.radius();
+    let normalized_offset = normalized_offset * Vec2::new(1.0, -1.0);
 
-    Some(side)
+    let food_radius = food_box.radius() / player_box.radius();
+
+    Some(Vec3::new(normalized_offset.x, normalized_offset.y, food_radius))
 }

@@ -12,6 +12,9 @@ pub struct CellMaterial {
 
     #[uniform(1)]
     pub color: LinearRgba,
+
+    #[storage(2, read_only)]
+    pub colliders: Vec<Vec4>,
 }
 
 /// The Material2d trait is very configurable, but comes with sensible defaults for all methods.
