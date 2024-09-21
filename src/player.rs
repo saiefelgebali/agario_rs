@@ -7,11 +7,12 @@ use crate::{
 use bevy::{
     prelude::*,
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
+    window::PrimaryWindow,
 };
 
 pub struct PlayerPlugin;
 
-const PLAYER_SIZE: f32 = 50.0;
+const PLAYER_SIZE: f32 = 100.0;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
@@ -20,6 +21,7 @@ impl Plugin for PlayerPlugin {
             Update,
             (
                 (
+                    // player_mouse_movement_system,
                     player_keyboard_input_system,
                     player_move_sytem,
                     sync_camera_with_player_system,
@@ -37,17 +39,13 @@ fn player_spawn_system(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<CellMaterial>>,
 ) {
-    let cell_overflow_radius = 0.05;
-    let mesh = Mesh::from(Circle::new(0.5 + cell_overflow_radius));
-
-    let normalized_cell_overflow_radius = cell_overflow_radius / 0.5;
+    let mesh = Mesh::from(Circle::new(0.5));
 
     commands
         .spawn(MaterialMesh2dBundle {
             mesh: Mesh2dHandle(meshes.add(mesh)),
             transform: Transform::from_xyz(0.0, 0.0, -10.0),
             material: materials.add(CellMaterial {
-                normalized_cell_overflow_radius,
                 color: LinearRgba::new(0.2, 0.8, 0.1, 1.0),
                 colliders: Vec::new(),
             }),
@@ -77,6 +75,25 @@ fn player_keyboard_input_system(
             velocity.y = -1.0;
         } else {
             velocity.y = 0.0;
+        }
+    }
+}
+
+fn player_mouse_movement_system(
+    q_windows: Query<&Window, With<PrimaryWindow>>,
+    mut query: Query<&mut Velocity, With<Player>>,
+) {
+    // Games typically only have one window (the primary window)
+    let window = q_windows.single();
+    let window_center = window.size().div_euclid(Vec2::new(2.0, 2.0));
+
+    if let Some(position) = window.cursor_position() {
+        let mouse_vector = position - window_center;
+        let mouse_vector = mouse_vector.clamp_length_max(5.0) / 5.0;
+
+        for mut velocity in &mut query {
+            velocity.x = mouse_vector.x;
+            velocity.y = -mouse_vector.y;
         }
     }
 }
@@ -114,7 +131,8 @@ fn sync_camera_with_player_size_system(
 ) {
     let player_size = player_query.single();
     for mut camera_projection in camera_query.iter_mut() {
-        camera_projection.scale = **player_size / (PLAYER_SIZE * 1.5);
+        camera_projection.scale = 0.5;
+        // camera_projection.scale = **player_size / (PLAYER_SIZE * 1.5);
     }
 }
 

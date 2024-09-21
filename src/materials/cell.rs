@@ -7,9 +7,6 @@ use bevy::{
 // This is the struct that will be passed to your shader
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
 pub struct CellMaterial {
-    #[uniform(0)]
-    pub normalized_cell_overflow_radius: f32,
-
     #[uniform(1)]
     pub color: LinearRgba,
 

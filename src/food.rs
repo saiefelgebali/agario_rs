@@ -1,5 +1,5 @@
 use crate::{
-    components::{Food, Player, Size},
+    components::{Food, IsDespawning, Player, Size},
     events::EatFoodEvent,
     materials::cell::CellMaterial,
     WORLD_SIZE,
@@ -16,6 +16,7 @@ pub struct FoodPlugin;
 impl Plugin for FoodPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(PostStartup, setup_food_system);
+        app.add_systems(Update, check_food_despawn);
         app.add_systems(FixedUpdate, check_food_collision_system);
     }
 }
@@ -26,9 +27,7 @@ fn setup_food_system(
     mut materials: ResMut<Assets<CellMaterial>>,
 ) {
     for _ in 0..20000 {
-        let cell_overflow_radius = 0.05;
-        let mesh = Mesh::from(Circle::new(0.5 + cell_overflow_radius));
-        let normalized_cell_overflow_radius = cell_overflow_radius / 0.5;
+        let mesh = Mesh::from(Circle::new(0.5));
 
         commands
             .spawn(MaterialMesh2dBundle {
@@ -38,22 +37,36 @@ fn setup_food_system(
                     ..default()
                 },
                 material: materials.add(CellMaterial {
-                    normalized_cell_overflow_radius,
                     color: random_color(),
                     colliders: Vec::new(),
                 }),
                 ..default()
             })
             .insert(Food)
+            .insert(IsDespawning(false))
             .insert(Size::rand_range(40.0..50.0));
     }
 }
 
-fn check_food_collision_system(
+fn check_food_despawn(
     mut commands: Commands,
-    player_query: Query<&Transform, With<Player>>,
-    food_query: Query<(Entity, &Transform, &Size), With<Food>>,
     mut eat_food_event: EventWriter<EatFoodEvent>,
+    mut food_query: Query<(Entity, &mut Size, &IsDespawning), With<Food>>,
+) {
+    for (entity, mut size, is_despawning) in food_query.iter_mut() {
+        if is_despawning.0 {
+            size.0 -= 5.;
+            if size.0 <= 0.0 {
+                commands.entity(entity).despawn();
+                eat_food_event.send(EatFoodEvent::new(**size));
+            }
+        }
+    }
+}
+
+fn check_food_collision_system(
+    player_query: Query<&Transform, With<Player>>,
+    mut food_query: Query<(&Transform, &Size, &mut IsDespawning), With<Food>>,
     mut materials: ResMut<Assets<CellMaterial>>,
     handle: Query<&Handle<CellMaterial>, With<Player>>,
 ) {
@@ -67,19 +80,21 @@ fn check_food_collision_system(
             player_transform.translation.truncate(),
             player_transform.scale.x / 2.0,
         );
-        for (food_entity, food_transform, food_size) in food_query.iter() {
+        for (food_transform, food_size, mut is_food_despawning) in food_query.iter_mut() {
             let food_box = BoundingCircle::new(
                 food_transform.translation.truncate(),
                 food_transform.scale.x / 2.0,
             );
             if let Some(offset) = food_collision(food_box, player_box) {
-                player_material
-                    .colliders
-                    .push(Vec4::new(offset.x, offset.y, offset.z, 0.0));
-
                 if offset.xy().length() < 1.0 {
-                    commands.entity(food_entity).despawn();
-                    eat_food_event.send(EatFoodEvent::new(**food_size));
+                    *is_food_despawning = IsDespawning(true);
+                    player_material
+                        .colliders
+                        .push(Vec4::new(offset.x, offset.y, offset.z, 0.0));
+                } else {
+                    player_material
+                        .colliders
+                        .push(Vec4::new(offset.x, offset.y, offset.z, 0.0));
                 }
             }
         }

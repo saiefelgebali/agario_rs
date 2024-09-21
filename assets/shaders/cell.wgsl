@@ -80,9 +80,10 @@ fn scene(sample_position: vec2<f32>, time: f32) -> f32 {
         let circle_position_b = translate(sample_position, current_collider.xy);
         let angle_b = atan2(circle_position_b.x, circle_position_b.y);
         let normalized_angle_b = (angle_b + PI) / (2.0 * PI);
-        let sin_extra_b = sum_of_sines(normalized_angle_b, time, 0.1);
-        let circle_b = circle(circle_position_b, current_collider.z + 0.2 + sin_extra_b);
-        scene_distance = max(scene_distance, round_subtract(circle_a, circle_b, 0.05));
+        // let sin_extra_b = 0.05 * nsin(normalized_angle_b * 80.0 * PI + 30.0 * time);
+        let sin_extra_b = 0.0;
+        let circle_b = circle(circle_position_b, current_collider.z + 0.0 + sin_extra_b);
+        scene_distance = max(scene_distance, round_subtract(circle_a, circle_b, 0.2));
     }
 
     return scene_distance;
@@ -91,7 +92,9 @@ fn scene(sample_position: vec2<f32>, time: f32) -> f32 {
 @fragment
 fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     let inside_color = base_color;
+    let border_color = vec4(inside_color.rgb * 0.5, 1.0);
     let outside_color = vec4(0.0, 0.5, 0.0, 0.0);
+
     let line_distance = 0.05;
     let line_thickness = 0.05;
 
@@ -99,7 +102,8 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
     let t = globals.time * SPEED;
 
     let scene_distance = scene(uv, t);
-    var color = mix(inside_color, outside_color, step(0.0, scene_distance));
+    var color = mix(border_color, outside_color, step(0.0, scene_distance));
+    color = mix(inside_color, color, step(0.0, scene_distance + 0.1));
 
     let scene_distance_change = fwidth(scene_distance) * 0.5;
     // let major_line_distance = abs(fract(scene_distance / line_distance + 0.5) -0.5) * line_distance;
@@ -110,4 +114,3 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
 
 	return color;
 }
-

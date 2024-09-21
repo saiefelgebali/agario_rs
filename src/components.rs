@@ -33,7 +33,7 @@ impl DerefMut for Velocity {
 pub struct Player;
 
 #[derive(Deref, DerefMut, Component, Clone)]
-pub struct Size(f32);
+pub struct Size(pub f32);
 
 impl Size {
     pub fn new(value: f32) -> Size {
@@ -49,3 +49,6 @@ impl Size {
 
 #[derive(Component)]
 pub struct Food;
+
+#[derive(Component)]
+pub struct IsDespawning(pub bool);
