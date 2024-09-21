@@ -59,7 +59,7 @@ fn merge(shape_a: f32, shape_b: f32) -> f32 {
 }
 
 fn sum_of_sines(normalized_angle: f32, time: f32, magnitude: f32) -> f32 {
-    var sin_extra = nsin(normalized_angle * 20.0 * PI + time);
+    var sin_extra = nsin(normalized_angle * 80.0 * PI + 30.0 * time);
     sin_extra += nsin(normalized_angle * 2.0 * PI + time);
     sin_extra /= 2.0;
     sin_extra *= magnitude;
@@ -70,11 +70,12 @@ fn scene(sample_position: vec2<f32>, time: f32) -> f32 {
     let circle_position_a = translate(sample_position, vec2(0.0, 0.0));
     let angle_a = atan2(circle_position_a.x, circle_position_a.y);
     let normalized_angle_a = (angle_a + PI) / (2.0 * PI);
-    let sin_extra_a = sum_of_sines(normalized_angle_a, time, 0.01);
-    let circle_a = circle(circle_position_a, 0.99 + sin_extra_a);
-    var scene_distance = -1.0;
+    // let sin_extra_a = sum_of_sines(normalized_angle_a, time, 0.01);
+    let circle_a = circle(circle_position_a, 1.0);
+    var scene_distance = circle_a;
+    let array_length = i32(arrayLength(&colliders));
 
-    for (var i = 0; i < 2; i++) {
+    for (var i = 1; i < array_length; i++) {
         let current_collider = colliders[i];
         let circle_position_b = translate(sample_position, current_collider.xy);
         let angle_b = atan2(circle_position_b.x, circle_position_b.y);

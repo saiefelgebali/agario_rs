@@ -5,7 +5,9 @@ use crate::{
     WORLD_SIZE,
 };
 use bevy::{
-    math::{bounding::{BoundingCircle, BoundingVolume, IntersectsVolume}}, prelude::*, sprite::{MaterialMesh2dBundle, Mesh2dHandle}
+    math::bounding::{BoundingCircle, BoundingVolume, IntersectsVolume},
+    prelude::*,
+    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
 use rand::{thread_rng, Rng};
 
@@ -38,7 +40,7 @@ fn setup_food_system(
                 material: materials.add(CellMaterial {
                     normalized_cell_overflow_radius,
                     color: random_color(),
-                    colliders: Vec::new()
+                    colliders: Vec::new(),
                 }),
                 ..default()
             })
@@ -58,7 +60,7 @@ fn check_food_collision_system(
     let player_material_handle = handle.single();
     let player_material = materials.get_mut(player_material_handle).unwrap();
 
-     player_material.colliders = Vec::new();
+    player_material.colliders = vec![Vec4::new(0.0, 0.0, 0.0, 0.0)];
 
     for player_transform in player_query.iter() {
         let player_box = BoundingCircle::new(
@@ -71,8 +73,9 @@ fn check_food_collision_system(
                 food_transform.scale.x / 2.0,
             );
             if let Some(offset) = food_collision(food_box, player_box) {
-                player_material.colliders.push(Vec4::new(offset.x, offset.y, offset.z, 0.0));
-                dbg!(offset);
+                player_material
+                    .colliders
+                    .push(Vec4::new(offset.x, offset.y, offset.z, 0.0));
 
                 if offset.xy().length() < 1.0 {
                     commands.entity(food_entity).despawn();
@@ -114,5 +117,9 @@ fn food_collision(food_box: BoundingCircle, player_box: BoundingCircle) -> Optio
 
     let food_radius = food_box.radius() / player_box.radius();
 
-    Some(Vec3::new(normalized_offset.x, normalized_offset.y, food_radius))
+    Some(Vec3::new(
+        normalized_offset.x,
+        normalized_offset.y,
+        food_radius,
+    ))
 }

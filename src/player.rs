@@ -26,7 +26,7 @@ impl Plugin for PlayerPlugin {
                     sync_camera_with_player_size_system,
                 )
                     .chain(),
-                handle_eat_food_event
+                handle_eat_food_event,
             ),
         );
     }
@@ -49,7 +49,7 @@ fn player_spawn_system(
             material: materials.add(CellMaterial {
                 normalized_cell_overflow_radius,
                 color: LinearRgba::new(0.2, 0.8, 0.1, 1.0),
-                colliders: Vec::new()
+                colliders: Vec::new(),
             }),
             ..default()
         })

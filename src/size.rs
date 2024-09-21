@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use crate::components::Size;
+use bevy::prelude::*;
 
 pub struct SizePlugin;
 
@@ -9,12 +9,9 @@ impl Plugin for SizePlugin {
     }
 }
 
-fn sync_size_system(
-    mut query: Query<(&mut Transform, &Size)>
-) {
+fn sync_size_system(mut query: Query<(&mut Transform, &Size)>) {
     for (mut transform, size) in &mut query {
         let scale = **size as f32;
         transform.scale = Vec3::new(scale, scale, scale);
     }
 }
-
