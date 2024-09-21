@@ -50,25 +50,12 @@ fn setup_food_system(
 fn check_food_despawn(
     mut commands: Commands,
     mut eat_food_event: EventWriter<EatFoodEvent>,
-    mut food_query: Query<
-        (
-            Entity,
-            &mut Size,
-            &Despawn,
-            &Handle<CellMaterial>,
-            &mut Transform,
-        ),
-        With<Food>,
-    >,
+    mut food_query: Query<(Entity, &mut Size, &Despawn, &mut Transform), With<Food>>,
     player_query: Query<&Transform, (With<Player>, Without<Food>)>,
-    mut materials: ResMut<Assets<CellMaterial>>,
 ) {
     let player_transform = player_query.single();
 
-    for (entity, mut size, despawn, material_handle, mut food_transform) in food_query.iter_mut() {
-        // let material = materials.get_mut(material_handle).unwrap();
-        // material.color = LinearRgba::new(0.0, 0.0, 0.0, 0.0);
-
+    for (entity, mut size, despawn, mut food_transform) in food_query.iter_mut() {
         let new_position = player_transform.translation
             + Vec3::new(
                 despawn.offset_from_player.x * player_transform.scale.x / 2.0,

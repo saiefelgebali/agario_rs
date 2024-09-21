@@ -56,28 +56,28 @@ fn player_spawn_system(
         .insert(Size::new(PLAYER_SIZE));
 }
 
-fn player_keyboard_input_system(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    mut query: Query<&mut Velocity, With<Player>>,
-) {
-    for mut velocity in &mut query {
-        if keyboard.pressed(KeyCode::KeyD) {
-            velocity.x = 1.0;
-        } else if keyboard.pressed(KeyCode::KeyA) {
-            velocity.x = -1.0;
-        } else {
-            velocity.x = 0.0;
-        }
-
-        if keyboard.pressed(KeyCode::KeyW) {
-            velocity.y = 1.0;
-        } else if keyboard.pressed(KeyCode::KeyS) {
-            velocity.y = -1.0;
-        } else {
-            velocity.y = 0.0;
-        }
-    }
-}
+// fn player_keyboard_input_system(
+//     keyboard: Res<ButtonInput<KeyCode>>,
+//     mut query: Query<&mut Velocity, With<Player>>,
+// ) {
+//     for mut velocity in &mut query {
+//         if keyboard.pressed(KeyCode::KeyD) {
+//             velocity.x = 1.0;
+//         } else if keyboard.pressed(KeyCode::KeyA) {
+//             velocity.x = -1.0;
+//         } else {
+//             velocity.x = 0.0;
+//         }
+//
+//         if keyboard.pressed(KeyCode::KeyW) {
+//             velocity.y = 1.0;
+//         } else if keyboard.pressed(KeyCode::KeyS) {
+//             velocity.y = -1.0;
+//         } else {
+//             velocity.y = 0.0;
+//         }
+//     }
+// }
 
 fn player_mouse_movement_system(
     q_windows: Query<&Window, With<PrimaryWindow>>,
@@ -126,10 +126,10 @@ fn sync_camera_with_player_system(
 }
 
 fn sync_camera_with_player_size_system(
-    player_query: Query<&Size, With<Player>>,
+    // player_query: Query<&Size, With<Player>>,
     mut camera_query: Query<&mut OrthographicProjection, With<Camera>>,
 ) {
-    let player_size = player_query.single();
+    // let player_size = player_query.single();
     for mut camera_projection in camera_query.iter_mut() {
         camera_projection.scale = 0.5;
         // camera_projection.scale = **player_size / (PLAYER_SIZE * 1.5);
