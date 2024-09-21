@@ -51,4 +51,14 @@ impl Size {
 pub struct Food;
 
 #[derive(Component)]
-pub struct IsDespawning(pub bool);
+pub struct Despawn {
+    pub offset_from_player: Vec2,
+}
+
+impl Despawn {
+    pub fn new(offset: Vec2) -> Despawn {
+        Despawn {
+            offset_from_player: offset,
+        }
+    }
+}

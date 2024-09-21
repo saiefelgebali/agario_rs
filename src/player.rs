@@ -21,8 +21,8 @@ impl Plugin for PlayerPlugin {
             Update,
             (
                 (
-                    // player_mouse_movement_system,
-                    player_keyboard_input_system,
+                    player_mouse_movement_system,
+                    // player_keyboard_input_system,
                     player_move_sytem,
                     sync_camera_with_player_system,
                     sync_camera_with_player_size_system,

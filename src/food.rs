@@ -1,5 +1,5 @@
 use crate::{
-    components::{Food, IsDespawning, Player, Size},
+    components::{Despawn, Food, Player, Size},
     events::EatFoodEvent,
     materials::cell::CellMaterial,
     WORLD_SIZE,
@@ -43,7 +43,6 @@ fn setup_food_system(
                 ..default()
             })
             .insert(Food)
-            .insert(IsDespawning(false))
             .insert(Size::rand_range(40.0..50.0));
     }
 }
@@ -51,22 +50,48 @@ fn setup_food_system(
 fn check_food_despawn(
     mut commands: Commands,
     mut eat_food_event: EventWriter<EatFoodEvent>,
-    mut food_query: Query<(Entity, &mut Size, &IsDespawning), With<Food>>,
+    mut food_query: Query<
+        (
+            Entity,
+            &mut Size,
+            &Despawn,
+            &Handle<CellMaterial>,
+            &mut Transform,
+        ),
+        With<Food>,
+    >,
+    player_query: Query<&Transform, (With<Player>, Without<Food>)>,
+    mut materials: ResMut<Assets<CellMaterial>>,
 ) {
-    for (entity, mut size, is_despawning) in food_query.iter_mut() {
-        if is_despawning.0 {
-            size.0 -= 5.;
-            if size.0 <= 0.0 {
-                commands.entity(entity).despawn();
-                eat_food_event.send(EatFoodEvent::new(**size));
-            }
+    let player_transform = player_query.single();
+
+    for (entity, mut size, despawn, material_handle, mut food_transform) in food_query.iter_mut() {
+        // let material = materials.get_mut(material_handle).unwrap();
+        // material.color = LinearRgba::new(0.0, 0.0, 0.0, 0.0);
+
+        let new_position = player_transform.translation
+            + Vec3::new(
+                despawn.offset_from_player.x * player_transform.scale.x / 2.0,
+                despawn.offset_from_player.y * -player_transform.scale.x / 2.0,
+                0.0,
+            );
+
+        food_transform.translation.x = new_position.x;
+        food_transform.translation.y = new_position.y;
+
+        size.0 -= 3.;
+
+        if size.0 <= 0.0 {
+            commands.entity(entity).despawn();
+            eat_food_event.send(EatFoodEvent::new(**size));
         }
     }
 }
 
 fn check_food_collision_system(
+    mut commands: Commands,
     player_query: Query<&Transform, With<Player>>,
-    mut food_query: Query<(&Transform, &Size, &mut IsDespawning), With<Food>>,
+    mut food_query: Query<(Entity, &Transform, &Size, Option<&Despawn>), With<Food>>,
     mut materials: ResMut<Assets<CellMaterial>>,
     handle: Query<&Handle<CellMaterial>, With<Player>>,
 ) {
@@ -80,14 +105,16 @@ fn check_food_collision_system(
             player_transform.translation.truncate(),
             player_transform.scale.x / 2.0,
         );
-        for (food_transform, food_size, mut is_food_despawning) in food_query.iter_mut() {
+        for (food_entity, food_transform, _food_size, maybe_despawn) in food_query.iter_mut() {
             let food_box = BoundingCircle::new(
                 food_transform.translation.truncate(),
                 food_transform.scale.x / 2.0,
             );
             if let Some(offset) = food_collision(food_box, player_box) {
-                if offset.xy().length() < 1.0 {
-                    *is_food_despawning = IsDespawning(true);
+                if offset.xy().length() < 1.0 && maybe_despawn.is_none() {
+                    commands
+                        .entity(food_entity)
+                        .insert(Despawn::new(offset.xy()));
                     player_material
                         .colliders
                         .push(Vec4::new(offset.x, offset.y, offset.z, 0.0));
@@ -122,7 +149,7 @@ fn random_color() -> LinearRgba {
 }
 
 fn food_collision(food_box: BoundingCircle, player_box: BoundingCircle) -> Option<Vec3> {
-    if !food_box.intersects(&player_box) {
+    if !food_box.grow(10.0).intersects(&player_box) {
         return None;
     }
 
