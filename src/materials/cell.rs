@@ -1,10 +1,9 @@
+use bevy::prelude::*;
 use bevy::{
-    prelude::*,
     render::render_resource::{AsBindGroup, ShaderRef},
     sprite::Material2d,
 };
 
-// This is the struct that will be passed to your shader
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
 pub struct CellMaterial {
     #[uniform(1)]
@@ -14,8 +13,15 @@ pub struct CellMaterial {
     pub colliders: Vec<Vec4>,
 }
 
-/// The Material2d trait is very configurable, but comes with sensible defaults for all methods.
-/// You only need to implement functions for features that need non-default behavior. See the Material2d api docs for details!
+impl CellMaterial {
+    pub fn new(color: LinearRgba) -> CellMaterial {
+        CellMaterial {
+            color,
+            colliders: vec![],
+        }
+    }
+}
+
 impl Material2d for CellMaterial {
     fn fragment_shader() -> ShaderRef {
         "shaders/cell.wgsl".into()

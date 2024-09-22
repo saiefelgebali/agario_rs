@@ -10,11 +10,11 @@ impl Plugin for EventsPlugin {
 
 #[derive(Event)]
 pub struct EatFoodEvent {
-    pub food_size: f32,
+    pub food_value: f32,
 }
 
 impl EatFoodEvent {
-    pub fn new(food_size: f32) -> EatFoodEvent {
-        EatFoodEvent { food_size }
+    pub fn new(food_value: f32) -> EatFoodEvent {
+        EatFoodEvent { food_value }
     }
 }

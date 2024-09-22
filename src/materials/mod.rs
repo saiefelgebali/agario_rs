@@ -1,9 +1,9 @@
 use bevy::{app::Plugin, sprite::Material2dPlugin};
-use cell::CellMaterial;
-use grid::GridMaterial;
+pub use cell::CellMaterial;
+pub use grid::GridMaterial;
 
-pub mod cell;
-pub mod grid;
+mod cell;
+mod grid;
 
 pub struct MaterialsPlugin;
 

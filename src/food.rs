@@ -1,15 +1,7 @@
-use crate::{
-    components::{Despawn, Food, Player, Size},
-    events::EatFoodEvent,
-    materials::cell::CellMaterial,
-    WORLD_SIZE,
-};
-use bevy::{
-    math::bounding::{BoundingCircle, BoundingVolume, IntersectsVolume},
-    prelude::*,
-    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
-};
-use rand::{thread_rng, Rng};
+use crate::prelude::*;
+use bevy::math::bounding::{BoundingCircle, BoundingVolume, IntersectsVolume};
+use bevy::prelude::*;
+use rand::*;
 
 pub struct FoodPlugin;
 
@@ -27,50 +19,40 @@ fn setup_food_system(
     mut materials: ResMut<Assets<CellMaterial>>,
 ) {
     for _ in 0..20000 {
-        let mesh = Mesh::from(Circle::new(0.5));
-
         commands
-            .spawn(MaterialMesh2dBundle {
-                mesh: Mesh2dHandle(meshes.add(mesh)),
-                transform: Transform {
-                    translation: random_position(),
-                    ..default()
-                },
-                material: materials.add(CellMaterial {
-                    color: random_color(),
-                    colliders: Vec::new(),
-                }),
+            .spawn(CellBundle {
+                mesh: CellBundle::add_cell_mesh(&mut meshes),
+                transform: Transform::from_translation(random_position()),
+                material: materials.add(CellMaterial::new(random_color())),
+                cell: Cell::rand_range(40.0..50.0),
                 ..default()
             })
-            .insert(Food)
-            .insert(Size::rand_range(40.0..50.0));
+            .insert(Food);
     }
 }
 
 fn check_food_despawn(
     mut commands: Commands,
     mut eat_food_event: EventWriter<EatFoodEvent>,
-    mut food_query: Query<(Entity, &mut Size, &Despawn, &mut Transform), With<Food>>,
+    mut food_query: Query<(Entity, &Despawn, &mut Cell, &mut Transform), With<Food>>,
     player_query: Query<&Transform, (With<Player>, Without<Food>)>,
 ) {
     let player_transform = player_query.single();
 
-    for (entity, mut size, despawn, mut food_transform) in food_query.iter_mut() {
-        let new_position = player_transform.translation
-            + Vec3::new(
-                despawn.offset_from_player.x * player_transform.scale.x / 2.0,
-                despawn.offset_from_player.y * -player_transform.scale.x / 2.0,
-                0.0,
+    for (entity, despawn, mut cell, mut transform) in food_query.iter_mut() {
+        let offset = despawn.offset_from_player
+            * Vec2::new(
+                player_transform.scale.x / 2.0,
+                -player_transform.scale.x / 2.0,
             );
 
-        food_transform.translation.x = new_position.x;
-        food_transform.translation.y = new_position.y;
+        transform.translation.x = player_transform.translation.x + offset.x;
+        transform.translation.y = player_transform.translation.y + offset.y;
+        cell.size -= 3.0;
 
-        size.0 -= 3.;
-
-        if size.0 <= 0.0 {
+        if cell.size <= 0.0 {
             commands.entity(entity).despawn();
-            eat_food_event.send(EatFoodEvent::new(**size));
+            eat_food_event.send(EatFoodEvent::new(cell.value / 20.0));
         }
     }
 }
@@ -78,7 +60,7 @@ fn check_food_despawn(
 fn check_food_collision_system(
     mut commands: Commands,
     player_query: Query<&Transform, With<Player>>,
-    mut food_query: Query<(Entity, &Transform, &Size, Option<&Despawn>), With<Food>>,
+    mut food_query: Query<(Entity, &Transform, Option<&Despawn>), With<Food>>,
     mut materials: ResMut<Assets<CellMaterial>>,
     handle: Query<&Handle<CellMaterial>, With<Player>>,
 ) {
@@ -92,7 +74,7 @@ fn check_food_collision_system(
             player_transform.translation.truncate(),
             player_transform.scale.x / 2.0,
         );
-        for (food_entity, food_transform, _food_size, maybe_despawn) in food_query.iter_mut() {
+        for (food_entity, food_transform, maybe_despawn) in food_query.iter_mut() {
             let food_box = BoundingCircle::new(
                 food_transform.translation.truncate(),
                 food_transform.scale.x / 2.0,
@@ -113,18 +95,6 @@ fn check_food_collision_system(
             }
         }
     }
-}
-
-fn random_position() -> Vec3 {
-    let lower_bound = WORLD_SIZE * -1.0;
-    let upper_bound = WORLD_SIZE;
-
-    let mut rand_gen = thread_rng();
-    let rand_x = rand_gen.gen_range(lower_bound..upper_bound);
-    let rand_y = rand_gen.gen_range(lower_bound..upper_bound);
-    let rand_z = rand_gen.gen_range(-50.0..-20.0);
-
-    Vec3::new(rand_x, rand_y, rand_z)
 }
 
 fn random_color() -> LinearRgba {
