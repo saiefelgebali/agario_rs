@@ -8,8 +8,10 @@ pub struct FoodPlugin;
 impl Plugin for FoodPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(PostStartup, setup_food_system);
-        app.add_systems(Update, check_food_despawn);
-        app.add_systems(FixedUpdate, check_food_collision_system);
+        app.add_systems(
+            FixedUpdate,
+            (check_food_collision_system, check_food_despawn),
+        );
     }
 }
 
@@ -106,7 +108,7 @@ fn random_color() -> LinearRgba {
 }
 
 fn food_collision(food_box: BoundingCircle, player_box: BoundingCircle) -> Option<Vec3> {
-    if !food_box.grow(10.0).intersects(&player_box) {
+    if !food_box.grow(food_box.radius()).intersects(&player_box) {
         return None;
     }
 
