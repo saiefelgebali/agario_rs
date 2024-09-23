@@ -115,12 +115,14 @@ fn sync_camera_with_player_size_system(
 }
 
 fn handle_eat_food_event(
+    mut commands: Commands,
     mut eat_food_event: EventReader<EatFoodEvent>,
-    mut query: Query<&mut Cell, With<Player>>,
+    query: Query<(Entity, &Cell), With<Player>>,
 ) {
     for event in eat_food_event.read() {
-        for mut player_cell in query.iter_mut() {
-            player_cell.size += event.food_value;
+        for (entity, player_cell) in query.iter() {
+            let new_size = player_cell.size + event.food_value;
+            commands.entity(entity).insert(Grow::new(new_size));
         }
     }
 }

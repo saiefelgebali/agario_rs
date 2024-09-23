@@ -6,13 +6,23 @@ pub struct CellPlugin;
 
 impl Plugin for CellPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, sync_cell_size);
+        app.add_systems(Update, (sync_cell_size, handle_cell_growth));
     }
 }
 
 fn sync_cell_size(mut query: Query<(&mut Transform, &Cell)>) {
     for (mut transform, cell) in &mut query {
         transform.scale = Vec3::new(cell.size, cell.size, cell.size);
+    }
+}
+
+fn handle_cell_growth(mut commands: Commands, mut query: Query<(Entity, &Grow, &mut Cell)>) {
+    for (entity, grow, mut cell) in query.iter_mut() {
+        cell.size += 0.1;
+        if cell.size >= grow.ideal_size {
+            cell.size = grow.ideal_size;
+            commands.entity(entity).remove::<Grow>();
+        }
     }
 }
 
