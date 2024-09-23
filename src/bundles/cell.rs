@@ -6,22 +6,49 @@ pub struct CellPlugin;
 
 impl Plugin for CellPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (sync_cell_size, handle_cell_growth));
+        app.add_systems(
+            Update,
+            (cell_move_system, cell_growth_system, cell_size_system),
+        );
+        app.add_systems(FixedUpdate, handle_eat_food_event);
     }
 }
 
-fn sync_cell_size(mut query: Query<(&mut Transform, &Cell)>) {
+fn cell_move_system(mut query: Query<(&Velocity, &mut Transform), With<Player>>) {
+    for (velocity, mut transform) in query.iter_mut() {
+        let translation = &mut transform.translation;
+        let vel = velocity;
+
+        translation.x += vel.x * TIME_STEP * BASE_SPEED;
+        translation.y += vel.y * TIME_STEP * BASE_SPEED;
+    }
+}
+
+fn cell_size_system(mut query: Query<(&mut Transform, &Cell)>) {
     for (mut transform, cell) in &mut query {
         transform.scale = Vec3::new(cell.size, cell.size, cell.size);
     }
 }
 
-fn handle_cell_growth(mut commands: Commands, mut query: Query<(Entity, &Grow, &mut Cell)>) {
+fn cell_growth_system(mut commands: Commands, mut query: Query<(Entity, &Grow, &mut Cell)>) {
     for (entity, grow, mut cell) in query.iter_mut() {
         cell.size += 0.1;
         if cell.size >= grow.ideal_size {
             cell.size = grow.ideal_size;
             commands.entity(entity).remove::<Grow>();
+        }
+    }
+}
+
+fn handle_eat_food_event(
+    mut commands: Commands,
+    mut eat_food_event: EventReader<EatFoodEvent>,
+    query: Query<(Entity, &Cell), With<Player>>,
+) {
+    for event in eat_food_event.read() {
+        for (entity, player_cell) in query.iter() {
+            let new_size = player_cell.size + event.food_value;
+            commands.entity(entity).insert(Grow::new(new_size));
         }
     }
 }
