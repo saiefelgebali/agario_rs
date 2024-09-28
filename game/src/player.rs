@@ -99,6 +99,6 @@ fn sync_camera_with_player_size_system(
 ) {
     let player_cell = player_cell.single();
     for mut camera_projection in camera_query.iter_mut() {
-        camera_projection.scale = 0.5 + ((player_cell.size / PLAYER_SIZE) - 1.0);
+        // camera_projection.scale = 0.5 + ((player_cell.size / PLAYER_SIZE) - 1.0);
     }
 }

@@ -1,5 +1,7 @@
+use std::{io::Read, net::TcpListener};
+
 use crate::prelude::*;
-use bevy::prelude::*;
+use bevy::{prelude::*, tasks::AsyncComputeTaskPool};
 
 mod bundles;
 mod components;
@@ -38,6 +40,26 @@ fn main() {
 }
 
 fn setup_system(mut commands: Commands) {
+    let thread_pool = AsyncComputeTaskPool::get();
+
+    let task = thread_pool
+        .spawn(async move {
+            let client = TcpListener::bind("127.0.0.1:3000").unwrap();
+
+            for stream in client.incoming() {
+                let mut stream = stream.unwrap();
+
+                let mut buf = String::new();
+
+                let message = stream.read_to_string(&mut buf).unwrap();
+
+                dbg!(message);
+            }
+        })
+        .detach();
+
+    dbg!(task);
+
     commands.spawn(Camera2dBundle {
         projection: OrthographicProjection {
             scale: 1.0,
