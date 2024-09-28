@@ -33,6 +33,8 @@ fn player_spawn_system(
             cell: Cell::new(PLAYER_SIZE),
             ..default()
         })
+        .insert(Velocity::default())
+        .insert(Consumer)
         .insert(Player);
 }
 

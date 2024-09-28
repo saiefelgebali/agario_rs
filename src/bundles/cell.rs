@@ -6,21 +6,8 @@ pub struct CellPlugin;
 
 impl Plugin for CellPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            Update,
-            (cell_move_system, cell_growth_system, cell_size_system),
-        );
+        app.add_systems(Update, (cell_growth_system, cell_size_system));
         app.add_systems(FixedUpdate, handle_eat_food_event);
-    }
-}
-
-fn cell_move_system(mut query: Query<(&Velocity, &mut Transform), With<Player>>) {
-    for (velocity, mut transform) in query.iter_mut() {
-        let translation = &mut transform.translation;
-        let vel = velocity;
-
-        translation.x += vel.x * TIME_STEP * BASE_SPEED;
-        translation.y += vel.y * TIME_STEP * BASE_SPEED;
     }
 }
 
@@ -59,7 +46,6 @@ fn handle_eat_food_event(
 #[derive(Bundle, Clone)]
 pub struct CellBundle {
     pub cell: Cell,
-    pub velocity: Velocity,
     pub mesh: Mesh2dHandle,
     pub material: Handle<CellMaterial>,
     pub transform: Transform,
@@ -82,7 +68,6 @@ impl Default for CellBundle {
     fn default() -> Self {
         Self {
             cell: Default::default(),
-            velocity: Default::default(),
             mesh: Default::default(),
             material: Default::default(),
             transform: Default::default(),

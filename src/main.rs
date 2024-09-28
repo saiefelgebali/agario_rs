@@ -10,6 +10,7 @@ mod player;
 mod prelude;
 mod settings;
 mod utils;
+mod velocity;
 mod world;
 
 fn main() {
@@ -30,6 +31,7 @@ fn main() {
         .add_plugins(player::PlayerPlugin)
         .add_plugins(food::FoodPlugin)
         .add_plugins(bundles::CellPlugin)
+        .add_plugins(velocity::VelocityPlugin)
         .add_plugins(EventsPlugin)
         .add_systems(Startup, setup_system)
         .run();
