@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::world::BackgroundGrid;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
@@ -83,14 +84,30 @@ fn player_mouse_input_system(
 
 fn sync_camera_with_player_system(
     player_transform: Query<&Transform, With<Player>>,
-    mut camera_transform: Query<&mut Transform, (With<Camera>, Without<Player>)>,
+    mut grid_transform: Query<
+        &mut Transform,
+        (With<BackgroundGrid>, Without<Player>, Without<Camera>),
+    >,
+    mut camera_transform: Query<
+        &mut Transform,
+        (With<Camera>, Without<Player>, Without<BackgroundGrid>),
+    >,
+    mut materials: ResMut<Assets<GridMaterial>>,
+    handle: Query<&Handle<GridMaterial>, With<BackgroundGrid>>,
 ) {
-    let player_transform = player_transform.single();
+    let grid_material = materials.get_mut(handle.single()).unwrap();
 
-    for mut camera_transform in camera_transform.iter_mut() {
-        camera_transform.translation.x = player_transform.translation.x;
-        camera_transform.translation.y = player_transform.translation.y;
-    }
+    let player_transform = player_transform.single();
+    let mut camera_transform = camera_transform.single_mut();
+    let mut grid_transform = grid_transform.single_mut();
+
+    camera_transform.translation.x = player_transform.translation.x;
+    camera_transform.translation.y = player_transform.translation.y;
+
+    grid_transform.translation.x = player_transform.translation.x;
+    grid_transform.translation.y = player_transform.translation.y;
+
+    grid_material.offset = player_transform.translation.xy();
 }
 
 fn sync_camera_with_player_size_system(

@@ -83,7 +83,7 @@ fn scene(sample_position: vec2<f32>, time: f32) -> f32 {
         // let sin_extra_b = 0.05 * nsin(normalized_angle_b * 80.0 * PI + 30.0 * time);
         let sin_extra_b = 0.0;
         let circle_b = circle(circle_position_b, current_collider.z + 0.0 + sin_extra_b);
-        scene_distance = max(scene_distance, round_subtract(circle_a, circle_b, 0.4));
+        scene_distance = max(scene_distance, round_subtract(circle_a, circle_b, 0.2));
     }
 
     return scene_distance;

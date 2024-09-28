@@ -8,12 +8,12 @@ pub struct WorldPlugin;
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup_world_system);
-        app.add_systems(Update, resize_grid_system);
+        app.add_systems(FixedUpdate, resize_grid_system);
     }
 }
 
 #[derive(Component)]
-struct BackgroundGrid;
+pub struct BackgroundGrid;
 
 fn setup_world_system(
     window: Query<&Window, With<PrimaryWindow>>,

@@ -5,11 +5,16 @@ use bevy::{
 };
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
-pub struct GridMaterial {}
+pub struct GridMaterial {
+    #[uniform(0)]
+    pub offset: Vec2,
+}
 
 impl GridMaterial {
     pub fn new() -> GridMaterial {
-        GridMaterial {}
+        GridMaterial {
+            offset: Vec2::default(),
+        }
     }
 }
 
