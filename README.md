@@ -1,5 +1,7 @@
 # agario_rs
 
+<img width="400" height="414" alt="agario_demo" src="https://github.com/user-attachments/assets/8f00d33c-1817-4460-aa63-691071a7f287" />
+
 An [agar.io](https://agar.io/) clone written in Rust using the [Bevy engine](https://bevyengine.org/).
 
 ## Learning resources
